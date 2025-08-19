@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 员工指挥中心</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel 支持 JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root" class="w-full"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const App = () => {
+      const [employee, setEmployee] = useState('');
+      const [prompt, setPrompt] = useState('');
+      const [output, setOutput] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      const callGeminiAPI = async (textPrompt) => {
+        try {
+          const chatHistory = [];
+          chatHistory.push({ role: "user", parts: [{ text: textPrompt }] });
+          const payload = { contents: chatHistory };
+
+          const apiKey = ""; // ⚠️ 这里需要填你自己的 API key
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+          let response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) throw new Error(`API 调用失败: ${response.status}`);
+
+          const result = await response.json();
+          if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return result.candidates[0].content.parts[0].text;
+          } else {
+            throw new Error("API 返回结构异常");
+          }
+        } catch (e) {
+          console.error("Error calling Gemini API:", e);
+          return "生成内容时发生错误。请检查控制台。";
+        }
+      };
+
+      const handleGenerate = async () => {
+        if (!prompt.trim() || !employee) {
+          setOutput('请选择一位AI员工并输入指令。');
+          return;
+        }
+
+        setLoading(true);
+        setOutput('正在为你生成内容，请稍候...');
+
+        const productDoc = \`
+        《AI Video Character Lab – 产品文档 v0.1》
+        1. 产品定位
+        一句话描述
+        一个帮助内容创作者“一站式生成AI视频，并保证角色形象一致性”的应用与平台。
+        ...
+        AI 员工分工：
+        AI 架构师：ChatGPT
+        AI 程序员：Cursor + Copilot
+        AI 测试员：Claude
+        AI 文档员：Notion AI
+        AI 市场专员：ChatGPT
+        \`;
+
+        let fullPrompt = '';
+        switch (employee) {
+          case 'AI架构师':
+            fullPrompt = \`你是一位AI架构师... 
+项目文档:
+\${productDoc}
+用户指令:
+\${prompt}\`;
+            break;
+          case 'AI程序员':
+            fullPrompt = \`你是一位AI程序员... 
+项目文档:
+\${productDoc}
+用户指令:
+\${prompt}\`;
+            break;
+          case 'AI文档员':
+            fullPrompt = \`你是一位AI文档员... 
+项目文档:
+\${productDoc}
+用户指令:
+\${prompt}\`;
+            break;
+          case 'AI测试员':
+            fullPrompt = \`你是一位AI测试员... 
+项目文档:
+\${productDoc}
+用户指令:
+\${prompt}\`;
+            break;
+          case 'AI市场专员':
+            fullPrompt = \`你是一位AI市场专员... 
+项目文档:
+\${productDoc}
+用户指令:
+\${prompt}\`;
+            break;
+          default:
+            fullPrompt = '请选择一位AI员工。';
+        }
+
+        const result = await callGeminiAPI(fullPrompt);
+        setOutput(result);
+        setLoading(false);
+      };
+
+      return (
+        <div className="p-6 bg-gray-100 min-h-screen font-sans antialiased text-gray-800">
+          <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+            <h1 className="text-3xl font-bold text-center text-blue-800 mb-4">AI数字公司指挥中心</h1>
+            <p className="text-center text-gray-600 mb-8">选择你的AI员工，并分配任务。</p>
+
+            <div className="flex flex-wrap justify-center gap-4 mb-6">
+              {['AI架构师 👩‍💻','AI程序员 👨‍💻','AI文档员 ✍️','AI测试员 🧪','AI市场专员 📈'].map((role) => {
+                const roleName = role.split(' ')[0];
+                return (
+                  <button
+                    key={role}
+                    onClick={() => setEmployee(roleName)}
+                    className={\`px-6 py-3 rounded-full font-semibold transition-all duration-300 \${employee === roleName ? 'bg-blue-600 text-white shadow-md scale-105' : 'bg-gray-200 text-blue-800 hover:bg-blue-100'}\`}
+                  >
+                    {role}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-gray-700 font-semibold mb-2">
+                你的指令 ({employee || '请先选择员工'}):
+              </label>
+              <textarea
+                className="w-full h-32 px-4 py-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-blue-500 transition-all duration-300 resize-none"
+                placeholder="例如：请为MVP的登录功能设计数据库表结构。"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+              ></textarea>
+            </div>
+
+            <div className="flex justify-center mb-8">
+              <button
+                onClick={handleGenerate}
+                disabled={!employee || !prompt.trim() || loading}
+                className="px-8 py-4 bg-green-500 text-white font-bold rounded-full shadow-md hover:bg-green-600 transition-all duration-300 transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {loading ? '工作进行中...' : '提交任务'}
+              </button>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 min-h-80">
+              <h2 className="text-xl font-bold text-gray-700 mb-4">AI员工的输出:</h2>
+              <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+                {loading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-blue-500"></div>
+                  </div>
+                ) : (
+                  output
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
