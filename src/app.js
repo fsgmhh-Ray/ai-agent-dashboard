@@ -1,0 +1,240 @@
+// Filename: src/App.js (或者 App.jsx)
+
+import React, { useState } from 'react';
+
+// Main App component
+const App = () => {
+  const [employee, setEmployee] = useState('');
+  const [prompt, setPrompt] = useState('');
+  const [output, setOutput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Function to call the Gemini API
+  const callGeminiAPI = async (textPrompt) => {
+    try {
+      const chatHistory = [];
+      chatHistory.push({ role: "user", parts: [{ text: textPrompt }] });
+      const payload = {
+          contents: chatHistory
+      };
+      
+      // Use the specified model for text generation
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+      
+      // Implement exponential backoff for retries
+      const maxRetries = 5;
+      let attempt = 0;
+      let response;
+      while (attempt < maxRetries) {
+        try {
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (response.status !== 429) { // 429 is Too Many Requests
+            break; // Success, break out of loop
+          }
+          attempt++;
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+          console.log(`Rate limit exceeded, retrying in ${delay / 1000}s...`);
+          await new Promise(res => setTimeout(res, delay));
+        } catch (error) {
+          attempt++;
+          const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+          console.error(`Fetch attempt ${attempt} failed:`, error);
+          await new Promise(res => setTimeout(res, delay));
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(`API call failed with status: ${response ? response.status : 'No response'}`);
+      }
+
+      const result = await response.json();
+      if (result.candidates && result.candidates.length > 0 &&
+        result.candidates[0].content && result.candidates[0].content.parts &&
+        result.candidates[0].content.parts.length > 0) {
+        return result.candidates[0].content.parts[0].text;
+      } else {
+        throw new Error("Invalid response structure from API.");
+      }
+
+    } catch (e) {
+      console.error("Error calling Gemini API:", e);
+      return "生成内容时发生错误。请检查控制台了解详细信息。";
+    }
+  };
+
+  // Function to handle the generation process
+  const handleGenerate = async () => {
+    if (!prompt.trim() || !employee) {
+      setOutput('请选择一位AI员工并输入指令。');
+      return;
+    }
+    
+    setLoading(true);
+    setOutput('正在为你生成内容，请稍候...');
+
+    // Construct the prompt for the selected employee
+    let fullPrompt = '';
+    const productDoc = `
+    《AI Video Character Lab – 产品文档 v0.1》
+    1. 产品定位
+    一句话描述
+    一个帮助内容创作者“一站式生成AI视频，并保证角色形象一致性”的应用与平台。
+    ... (rest of the document) ...
+    AI 员工分工（示例）
+    AI 架构师：ChatGPT（写技术文档、API 设计）
+    AI 程序员：Cursor + Copilot（写代码）
+    AI 测试员：Claude（生成测试用例 + 单元测试）
+    AI 文档员：Notion AI（生成用户手册）
+    AI 市场专员：ChatGPT（写营销文案、推广计划）
+    `;
+
+    // Adjust prompt based on the chosen employee's role
+    switch (employee) {
+      case 'AI架构师':
+        fullPrompt = `你是一位专业的AI架构师。根据以下用户指令和项目文档，请为《AI Video Character Lab》项目设计一个详细的技术方案。你的回答应该专注于API设计、数据库结构和技术流程。
+
+项目文档：
+${productDoc}
+
+用户指令：
+${prompt}`;
+        break;
+      case 'AI程序员':
+        fullPrompt = `你是一位专业的AI程序员，擅长使用React和Python。根据以下用户指令和项目文档，请编写具体的代码。请确保代码是完整的、可运行的，并包含详细的注释。你的回答应该只包含代码，不包含任何解释性文字。
+
+项目文档：
+${productDoc}
+
+用户指令：
+${prompt}`;
+        break;
+      case 'AI文档员':
+        fullPrompt = `你是一位专业的AI文档员。根据以下用户指令和项目文档，请为《AI Video Character Lab》项目编写一份用户手册或产品文档。你的回答应该以清晰、易懂的Markdown格式呈现。
+
+项目文档：
+${productDoc}
+
+用户指令：
+${prompt}`;
+        break;
+      case 'AI测试员':
+        fullPrompt = `你是一位专业的AI测试员。根据以下用户指令和项目文档，请为《AI Video Character Lab》项目编写一份详细的测试用例。测试用例应包含测试步骤、预期结果和测试数据。
+
+项目文档：
+${productDoc}
+
+用户指令：
+${prompt}`;
+        break;
+      case 'AI市场专员':
+        fullPrompt = `你是一位专业的AI市场专员。根据以下用户指令和项目文档，请为《AI Video Character Lab》项目编写一份营销文案或推广计划。
+
+项目文档：
+${productDoc}
+
+用户指令：
+${prompt}`;
+        break;
+      default:
+        fullPrompt = '请选择一位AI员工。';
+    }
+
+    const result = await callGeminiAPI(fullPrompt);
+    setOutput(result);
+    setLoading(false);
+  };
+
+  return (
+    <div className="p-6 bg-gray-100 min-h-screen font-sans antialiased text-gray-800">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        {/* Header and Title */}
+        <h1 className="text-3xl font-bold text-center text-blue-800 mb-4">AI数字公司指挥中心</h1>
+        <p className="text-center text-gray-600 mb-8">选择你的AI员工，并分配任务。</p>
+
+        {/* Employee Selection */}
+        <div className="flex flex-wrap justify-center gap-4 mb-6">
+          <button
+            onClick={() => setEmployee('AI架构师')}
+            className={`px-6 py-3 rounded-full font-semibold transition-all duration-300
+              ${employee === 'AI架构师' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-200 text-blue-800 hover:bg-blue-100'}`}
+          >
+            AI架构师 👩‍💻
+          </button>
+          <button
+            onClick={() => setEmployee('AI程序员')}
+            className={`px-6 py-3 rounded-full font-semibold transition-all duration-300
+              ${employee === 'AI程序员' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-200 text-blue-800 hover:bg-blue-100'}`}
+          >
+            AI程序员 👨‍💻
+          </button>
+          <button
+            onClick={() => setEmployee('AI文档员')}
+            className={`px-6 py-3 rounded-full font-semibold transition-all duration-300
+              ${employee === 'AI文档员' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-200 text-blue-800 hover:bg-blue-100'}`}
+          >
+            AI文档员 ✍️
+          </button>
+          <button
+            onClick={() => setEmployee('AI测试员')}
+            className={`px-6 py-3 rounded-full font-semibold transition-all duration-300
+              ${employee === 'AI测试员' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-200 text-blue-800 hover:bg-blue-100'}`}
+          >
+            AI测试员 🧪
+          </button>
+          <button
+            onClick={() => setEmployee('AI市场专员')}
+            className={`px-6 py-3 rounded-full font-semibold transition-all duration-300
+              ${employee === 'AI市场专员' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'bg-gray-200 text-blue-800 hover:bg-blue-100'}`}
+          >
+            AI市场专员 📈
+          </button>
+        </div>
+
+        {/* Prompt Input */}
+        <div className="mb-6">
+          <label className="block text-gray-700 font-semibold mb-2">你的指令 ({employee || '请先选择员工'}):</label>
+          <textarea
+            className="w-full h-32 px-4 py-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-blue-500 transition-all duration-300 resize-none"
+            placeholder="例如：请为MVP的登录功能设计数据库表结构。"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          ></textarea>
+        </div>
+        
+        {/* Action Button */}
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={handleGenerate}
+            disabled={!employee || !prompt.trim() || loading}
+            className="px-8 py-4 bg-green-500 text-white font-bold rounded-full shadow-md hover:bg-green-600 transition-all duration-300 transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {loading ? '工作进行中...' : '提交任务'}
+          </button>
+        </div>
+
+        {/* Output Display */}
+        <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 min-h-80">
+          <h2 className="text-xl font-bold text-gray-700 mb-4">AI员工的输出:</h2>
+          {output && (
+            <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
+              {loading ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-blue-500"></div>
+                </div>
+              ) : (
+                output
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
