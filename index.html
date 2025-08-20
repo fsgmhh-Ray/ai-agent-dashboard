@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 员工指挥中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             margin: 0;
@@ -145,118 +147,12 @@
     </div>
 
     <script>
-      // Supabase Client Library (v2) - Inlined to ensure it's always available.
-      var Supabase = (function(exports) {
-        'use strict';
-        const createClient = (supabaseUrl, supabaseKey) => {
-          const headers = { 'apikey': supabaseKey, 'Content-Type': 'application/json' };
-          const from = (tableName) => {
-            let query = `${supabaseUrl}/rest/v1/${tableName}?apikey=${supabaseKey}`;
-            let eqValue = '';
-            let orderValue = '';
-            
-            const select = (columns = '*') => {
-              query += `&select=${columns}`;
-              return { eq, insert, order, delete: del };
-            };
-            const eq = (column, value) => {
-              eqValue = `&${column}=eq.${value}`;
-              return { order, data: [] };
-            };
-            const insert = async (rows) => {
-              try {
-                const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
-                  body: JSON.stringify(rows)
-                });
-                const data = await response.json();
-                return { data, error: null };
-              } catch (error) {
-                return { data: null, error: error };
-              }
-            };
-            const del = async () => {
-              try {
-                const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?${eqValue.substring(1)}`, {
-                  method: 'DELETE',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
-                });
-                return { data: null, error: null };
-              } catch (error) {
-                return { data: null, error: error };
-              }
-            };
-            const order = (column, options) => {
-              orderValue = `&order=${column}.${options.ascending ? 'asc' : 'desc'}`;
-              return { data: [] };
-            };
-            
-            const get = async () => {
-              try {
-                const response = await fetch(`${query}${eqValue}${orderValue}`, { headers });
-                const data = await response.json();
-                return { data, error: null };
-              } catch (error) {
-                return { data: null, error: error };
-              }
-            };
-
-            return { select, eq, insert, order, delete: del, get };
-          };
-
-          const auth = {
-            onAuthStateChange: (callback) => {
-              // Mock auth state for in-browser use. Real Supabase uses a listener.
-              const user = localStorage.getItem('user');
-              if (user) {
-                callback('SIGNED_IN', { user: JSON.parse(user) });
-              } else {
-                callback('SIGNED_OUT', { user: null });
-              }
-            },
-            signInWithPassword: ({ email, password }) => {
-              // Mock auth. In a real app, this would be an API call.
-              const user = { id: email, email: email };
-              localStorage.setItem('user', JSON.stringify(user));
-              return { data: { session: { user } }, error: null };
-            },
-            signUp: ({ email, password }) => {
-              // Mock auth.
-              const user = { id: email, email: email };
-              localStorage.setItem('user', JSON.stringify(user));
-              return { data: { user }, error: null };
-            },
-            signOut: () => {
-              localStorage.removeItem('user');
-              return { error: null };
-            }
-          };
-
-          const storage = {
-            from: (bucketName) => {
-              return {
-                upload: async (path, file) => {
-                  return { data: { path }, error: null };
-                },
-                remove: async (paths) => {
-                  return { data: [], error: null };
-                }
-              };
-            }
-          };
-
-          return { auth, from, storage };
-        };
-        exports.createClient = createClient;
-        Object.defineProperty(exports, '__esModule', { value: true });
-        return exports;
-      })({});
-
+      // The Supabase client is a global object, so we don't need to wrap it.
+      // The CDN link above handles the global definition.
       document.addEventListener('DOMContentLoaded', async () => {
         // --- Supabase and API Configuration (IMPORTANT: Fill in your own keys) ---
-        const SUPABASE_URL = 'https://nayzeswaeqlephcxbkih.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heXplc3dhZXFsZXBoY3hia2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NTUwOTcsImV4cCI6MjA3MTIzMTA5N30.BgTn4B24Z9s1I9Dc1tNekN6UpmmaUoHyefghKaxSn4U';
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_KEY';
         const GEMINI_API_KEY = ''; // This will be automatically provided in the Canvas environment
         
         // --- Admin Whitelist (IMPORTANT: Add your email here) ---
@@ -392,6 +288,7 @@
         };
 
         // Supabase Auth State Listener
+        // Note: Supabase's onAuthStateChange will handle user state correctly on page load and refresh.
         supabase.auth.onAuthStateChange((event, session) => {
             if (session && session.user) {
                 showApp(session.user);
