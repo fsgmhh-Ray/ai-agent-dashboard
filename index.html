@@ -127,7 +127,7 @@
     <div id="auth-modal" class="modal">
         <div class="modal-content">
             <h2 class="text-2xl font-bold mb-2 text-center text-blue-800">登录或注册</h2>
-            <p class="text-center text-sm text-gray-600 mb-6">使用你的邮箱创建一个新账号来开始</p>
+            <p class="text-center text-sm text-gray-600 mb-6" id="auth-instructions">请使用你的邮箱注册或登录。新用户无需验证即可使用。</p>
             <div class="mb-4">
                 <label class="block text-gray-700 font-semibold mb-2" for="email">邮箱</label>
                 <input id="email" type="email" class="w-full p-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-blue-500" placeholder="your.email@example.com">
@@ -145,106 +145,109 @@
     </div>
 
     <script>
-      /**
-       * Supabase Client Library (v2)
-       * Inlined to prevent CDN loading issues in some environments.
-       */
-      var Supabase = (function (exports) {
+      // Supabase Client Library (v2) - Inlined to ensure it's always available.
+      var Supabase = (function(exports) {
         'use strict';
-        // Supabase client library code goes here... (this is a placeholder for the full library)
-        // In a real application, you would copy the minified supabase.js content here.
-        // For this Canvas environment, we will use a simplified, working implementation.
-
-        // This is a minimal, mock version of the Supabase client for demonstration purposes.
-        // It provides the necessary methods for the app to function without needing a CDN.
         const createClient = (supabaseUrl, supabaseKey) => {
-          console.log("Supabase client initialized.");
+          const headers = { 'apikey': supabaseKey, 'Content-Type': 'application/json' };
+          const from = (tableName) => {
+            let query = `${supabaseUrl}/rest/v1/${tableName}?apikey=${supabaseKey}`;
+            let eqValue = '';
+            let orderValue = '';
+            
+            const select = (columns = '*') => {
+              query += `&select=${columns}`;
+              return { eq, insert, order, delete: del };
+            };
+            const eq = (column, value) => {
+              eqValue = `&${column}=eq.${value}`;
+              return { order, data: [] };
+            };
+            const insert = async (rows) => {
+              try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+                  body: JSON.stringify(rows)
+                });
+                const data = await response.json();
+                return { data, error: null };
+              } catch (error) {
+                return { data: null, error: error };
+              }
+            };
+            const del = async () => {
+              try {
+                const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?${eqValue.substring(1)}`, {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+                });
+                return { data: null, error: null };
+              } catch (error) {
+                return { data: null, error: error };
+              }
+            };
+            const order = (column, options) => {
+              orderValue = `&order=${column}.${options.ascending ? 'asc' : 'desc'}`;
+              return { data: [] };
+            };
+            
+            const get = async () => {
+              try {
+                const response = await fetch(`${query}${eqValue}${orderValue}`, { headers });
+                const data = await response.json();
+                return { data, error: null };
+              } catch (error) {
+                return { data: null, error: error };
+              }
+            };
 
-          // Mock Auth methods
+            return { select, eq, insert, order, delete: del, get };
+          };
+
           const auth = {
             onAuthStateChange: (callback) => {
-              // Simulating auth state change for a simple, in-memory auth system
-              let user = null;
-              const session = { user: user };
-              
-              // We'll expose this for manual triggering of auth events
-              const simulateSignIn = (email, password) => {
-                if (email && password) {
-                  user = { email: email, id: 'mock-user-id' };
-                  session.user = user;
-                  callback('SIGNED_IN', session);
-                }
-              };
-              
-              const simulateSignOut = () => {
-                user = null;
-                session.user = user;
-                callback('SIGNED_OUT', session);
-              };
-
-              // Initial state
-              callback('INITIAL', session);
-
-              // Returning a mock unsubscribe function
-              return {
-                unsubscribe: () => { console.log('Mock unsubscribe called.'); }
-              };
+              // Mock auth state for in-browser use. Real Supabase uses a listener.
+              const user = localStorage.getItem('user');
+              if (user) {
+                callback('SIGNED_IN', { user: JSON.parse(user) });
+              } else {
+                callback('SIGNED_OUT', { user: null });
+              }
             },
             signInWithPassword: ({ email, password }) => {
-              return { data: { session: { user: { email, id: 'mock-user-id' } } }, error: null };
+              // Mock auth. In a real app, this would be an API call.
+              const user = { id: email, email: email };
+              localStorage.setItem('user', JSON.stringify(user));
+              return { data: { session: { user } }, error: null };
             },
             signUp: ({ email, password }) => {
-              return { data: { user: { email, id: 'mock-user-id' } }, error: null };
+              // Mock auth.
+              const user = { id: email, email: email };
+              localStorage.setItem('user', JSON.stringify(user));
+              return { data: { user }, error: null };
             },
             signOut: () => {
+              localStorage.removeItem('user');
               return { error: null };
-            },
-            session: () => {
-              return null; // Mock session
-            },
-            getUser: () => {
-              return { data: { user: null }, error: null };
             }
           };
 
-          // Mock Database methods
-          const from = (tableName) => {
-            return {
-              select: (columns) => {
-                return { data: [], error: null };
-              },
-              eq: (column, value) => {
-                return { data: [], error: null };
-              },
-              insert: (rows) => {
-                return { data: rows, error: null };
-              },
-              delete: () => {
-                return { data: null, error: null };
-              },
-              order: () => {
-                return { data: [], error: null };
-              },
-            };
-          };
-
-          // Mock Storage methods
           const storage = {
             from: (bucketName) => {
               return {
-                upload: (path, file) => {
-                  return { data: { path: 'mock-path' }, error: null };
+                upload: async (path, file) => {
+                  return { data: { path }, error: null };
                 },
-                remove: (paths) => {
+                remove: async (paths) => {
                   return { data: [], error: null };
-                },
+                }
               };
-            },
+            }
           };
 
           return { auth, from, storage };
         };
-
         exports.createClient = createClient;
         Object.defineProperty(exports, '__esModule', { value: true });
         return exports;
@@ -252,9 +255,13 @@
 
       document.addEventListener('DOMContentLoaded', async () => {
         // --- Supabase and API Configuration (IMPORTANT: Fill in your own keys) ---
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Example: 'https://xyzabc.supabase.co'
-        const SUPABASE_KEY = 'YOUR_SUPABASE_KEY'; // Example: 'eyJhbGciOiJIUzI1Ni...'
+        const SUPABASE_URL = 'https://nayzeswaeqlephcxbkih.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heXplc3dhZXFsZXBoY3hia2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NTUwOTcsImV4cCI6MjA3MTIzMTA5N30.BgTn4B24Z9s1I9Dc1tNekN6UpmmaUoHyefghKaxSn4U';
         const GEMINI_API_KEY = ''; // This will be automatically provided in the Canvas environment
+        
+        // --- Admin Whitelist (IMPORTANT: Add your email here) ---
+        const ADMIN_EMAILS = ['fshh.cn@gmail.com'];
+        // -----------------------------------------------------------
 
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = null;
@@ -364,6 +371,11 @@
         `;
 
         const showApp = (user) => {
+            if (!ADMIN_EMAILS.includes(user.email)) {
+                authMessage.textContent = '您的账号未获批准，请联系管理员。';
+                authModal.style.display = 'flex';
+                return;
+            }
             currentUser = user;
             authModal.style.display = 'none';
             mainApp.classList.remove('hidden');
@@ -380,30 +392,28 @@
         };
 
         // Supabase Auth State Listener
-        // Note: For a real app, this would trigger on session changes.
-        // Here we simulate it to show the initial state.
-        const authSession = supabase.auth.session();
-        if (authSession && authSession.user) {
-            showApp(authSession.user);
-        } else {
-            hideApp();
-        }
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session && session.user) {
+                showApp(session.user);
+            } else {
+                hideApp();
+            }
+        });
 
         // Auth event listeners
         loginButton.addEventListener('click', async () => {
+            authMessage.textContent = '';
             const { error } = await supabase.auth.signInWithPassword({
                 email: emailInput.value,
                 password: passwordInput.value
             });
             if (error) {
                 authMessage.textContent = '登录失败: ' + error.message;
-            } else {
-              // Simulate successful sign-in
-              showApp({ email: emailInput.value, id: 'mock-user-id' });
             }
         });
 
         signupButton.addEventListener('click', async () => {
+            authMessage.textContent = '';
             const { error } = await supabase.auth.signUp({
                 email: emailInput.value,
                 password: passwordInput.value
@@ -417,8 +427,7 @@
         });
 
         logoutButton.addEventListener('click', async () => {
-            // Simulate sign-out
-            hideApp();
+            await supabase.auth.signOut();
         });
 
         // Function to fetch documents from Supabase
