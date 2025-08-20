@@ -152,6 +152,7 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heXplc3dhZXFsZXBoY3hia2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NTUwOTcsImV4cCI6MjA3MTIzMTA5N30.BgTn4B24Z9s1I9Dc1tNekN6UpmmaUoHyefghKaxSn4U';
         const GEMINI_API_KEY = ''; // This will be automatically provided in the Canvas environment
 
+        // Fix: Use the correct variables for Supabase client creation
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = null;
 
