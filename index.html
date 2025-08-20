@@ -147,383 +147,402 @@
     </div>
 
     <script>
-      // --- Supabase and API Configuration (IMPORTANT: Fill in your own keys) ---
-      const SUPABASE_URL = 'https://nayzeswaeqlephcxbkih.supabase.co'; // Example: 'https://xyzabc.supabase.co'
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heXplc3dhZXFsZXBoY3hia2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NTUwOTcsImV4cCI6MjA3MTIzMTA5N30.BgTn4B24Z9s1I9Dc1tNekN6UpmmaUoHyefghKaxSn4U'; // Example: 'eyJhbGciOiJIUzI1Ni...'
-      const GEMINI_API_KEY = ''; // This will be automatically provided in the Canvas environment
-      
-      // --- Admin Whitelist (IMPORTANT: Add your email here) ---
-      const ADMIN_EMAILS = ['fshh.cn@gmail.com'];
-      // -----------------------------------------------------------
-
-      let supabase = null;
-      let currentUser = null;
-
-      // Wait for Supabase library to be available before initializing
-      function initializeSupabase() {
-          return new Promise(resolve => {
-              if (typeof Supabase !== 'undefined') {
-                  const client = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                  resolve(client);
-              } else {
-                  setTimeout(() => resolve(initializeSupabase()), 100);
-              }
-          });
-      }
-
       document.addEventListener('DOMContentLoaded', async () => {
-          supabase = await initializeSupabase();
+        // --- Supabase and API Configuration (IMPORTANT: Fill in your own keys) ---
+        const SUPABASE_URL = 'https://nayzeswaeqlephcxbkih.supabase.co'; // Example: 'https://xyzabc.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5heXplc3dhZXFsZXBoY3hia2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NTUwOTcsImV4cCI6MjA3MTIzMTA5N30.BgTn4B24Z9s1I9Dc1tNekN6UpmmaUoHyefghKaxSn4U'; // Example: 'eyJhbGciOiJIUzI1Ni...'
+        const GEMINI_API_KEY = ''; // This will be automatically provided in the Canvas environment
+        
+        // --- Admin Whitelist (IMPORTANT: Add your email here) ---
+        const ADMIN_EMAILS = ['fshh.cn@gmail.com'];
+        // -----------------------------------------------------------
 
-          const authModal = document.getElementById('auth-modal');
-          const mainApp = document.getElementById('main-app');
-          const userInfo = document.getElementById('user-info');
-          const emailInput = document.getElementById('email');
-          const passwordInput = document.getElementById('password');
-          const loginButton = document.getElementById('login-button');
-          const signupButton = document.getElementById('signup-button');
-          const logoutButton = document.getElementById('logout-button');
-          const authMessage = document.getElementById('auth-message');
-          const employeeButtons = document.querySelectorAll('#employee-selection button');
-          const promptLabel = document.getElementById('prompt-label');
-          const promptInput = document.getElementById('prompt-input');
-          const generateButton = document.getElementById('generate-button');
-          const outputDisplay = document.getElementById('output-display');
-          const docList = document.getElementById('doc-list');
-          const fileUpload = document.getElementById('file-upload');
-          const uploadButton = document.getElementById('upload-button');
-          const productDoc = `
-            《AI Video Character Lab – 产品文档 v0.1》
-            1. 产品定位
-            一句话描述
-    
-            一个帮助内容创作者“一站式生成AI视频，并保证角色形象一致性”的应用与平台。
-            目标用户
-    
-            短视频博主（抖音、快手、小红书、YouTube Shorts）
-            品牌内容团队（想要统一IP形象）
-            教育 & 培训视频制作者（需要长期保持讲师角色）
-            核心痛点
-    
-            用 AI 生成视频时，角色形象常常“变脸”，缺乏一致性。
-            内容创作者缺乏技术背景，无法组装复杂的 AI 工具链。
-            现有平台价格高、流程复杂，不能一站式解决问题。
-            产品价值主张
-    
-            一站式：上传角色 → 输入脚本 → 一键生成视频。
-            角色一致性：通过“角色 Embedding”机制保证角色长相、服饰、风格稳定。
-            快速：5 分钟内生成 Demo 视频。
-            2. 产品功能
-            MVP 必须功能（第1–2周）
-            角色上传
-            用户上传 3–5 张同一角色图片。
-            系统生成角色向量（Embedding）。
-            脚本生成
-            用户输入文字（或上传文稿）。
-            系统自动生成分镜脚本（文本描述 + 镜头划分）。
-            视频生成
-            通过调用视频生成模型（Sora / Veo / Runway / Pika）。
-            保持角色一致，生成 30 秒以内视频。
-            视频下载/分享
-            用户可直接下载视频文件，或复制分享链接。
-            扩展功能（第3–6周）
-            角色库：保存多个角色，随时调用。
-            风格模板：日常 vlog、古风、科技感、卡通等。
-            多语言支持：支持中英双语脚本。
-            协作模式：团队多人共享角色库。
-            未来功能（第7–8周及之后）
-            订阅套餐（基础版/专业版/企业版）
-            云端渲染优化（更快的视频生成速度）
-            开放 API（供其他开发者调用）
-            AI 剪辑助手（自动加字幕、音乐、转场）
-            3. 用户流程图（v0.1）
-    
-            [用户上传角色图片]
-                    ↓[系统生成角色Embedding]
-                    ↓[输入/上传脚本文本]
-                    ↓[自动生成分镜脚本]
-                    ↓[调用视频生成模型]
-                    ↓[输出30秒视频]
-                    ↓[用户下载/分享]
-            4. 技术选型
-            前端
-            框架：Next.js + React
-            托管：Vercel 免费计划
-            UI：TailwindCSS + Shadcn/UI
-            后端
-            框架：FastAPI (Python) 或 Node.js
-            数据库：Supabase（免费起步）
-            文件存储：Supabase Storage / AWS S3
-            模型调用
-            角色一致性生成：Stable Diffusion + LoRA/Embedding 技术
-            视频生成：Runway Gen-3、Veo 3、Pika Labs（API 或调用自动化）
-            脚本生成：GPT-4.1 / Claude 3.5
-            工作流自动化
-            原型阶段：Make / Zapier（无代码自动化）
-            生产阶段：自研 API Pipeline
-            5. 商业模式（初版）
-            免费试用：1 分钟视频
-            月订阅：¥99（10 分钟/月） / ¥299（50 分钟/月）
-            企业定制：¥2,999+/月（角色库 + API 接入）
-            6. 执行路线（前8周）
-            Week 1–2：实现 MVP（角色上传 → 角色一致性 → 视频输出）。
-            Week 3–4：上线测试用户（找 3–5 位创作者）。
-            Week 5–6：迭代风格模板 + 角色库功能。
-            Week 7–8：订阅系统 + Landing Page 正式发布。
-            7. AI 员工分工（示例）
-            AI 架构师：ChatGPT（写技术文档、API 设计）
-            AI 程序员：Cursor + Copilot（写代码）
-            AI 测试员：Claude（生成测试用例 + 单元测试）
-            AI 文档员：Notion AI（生成用户手册）
-            AI 市场专员：ChatGPT（写营销文案、推广计划）
-            `;
+        let supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let currentUser = null;
 
-            const showApp = (user) => {
-                if (!ADMIN_EMAILS.includes(user.email)) {
-                    authMessage.textContent = '您的账号未获批准，请联系管理员。';
-                    authModal.style.display = 'flex';
-                    return;
-                }
-                currentUser = user;
-                authModal.style.display = 'none';
-                mainApp.classList.remove('hidden');
-                userInfo.textContent = `当前用户: ${user.email}`;
-                fetchDocuments();
-            };
+        const authModal = document.getElementById('auth-modal');
+        const mainApp = document.getElementById('main-app');
+        const userInfo = document.getElementById('user-info');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const signupButton = document.getElementById('signup-button');
+        const logoutButton = document.getElementById('logout-button');
+        const authMessage = document.getElementById('auth-message');
 
-            const hideApp = () => {
-                currentUser = null;
+        const employeeButtons = document.querySelectorAll('#employee-selection button');
+        const promptLabel = document.getElementById('prompt-label');
+        const promptInput = document.getElementById('prompt-input');
+        const generateButton = document.getElementById('generate-button');
+        const outputDisplay = document.getElementById('output-display');
+        const docList = document.getElementById('doc-list');
+        const fileUpload = document.getElementById('file-upload');
+        const uploadButton = document.getElementById('upload-button');
+        const productDoc = `
+        《AI Video Character Lab – 产品文档 v0.1》
+        1. 产品定位
+        一句话描述
+
+        一个帮助内容创作者“一站式生成AI视频，并保证角色形象一致性”的应用与平台。
+        目标用户
+
+        短视频博主（抖音、快手、小红书、YouTube Shorts）
+        品牌内容团队（想要统一IP形象）
+        教育 & 培训视频制作者（需要长期保持讲师角色）
+        核心痛点
+
+        用 AI 生成视频时，角色形象常常“变脸”，缺乏一致性。
+        内容创作者缺乏技术背景，无法组装复杂的 AI 工具链。
+        现有平台价格高、流程复杂，不能一站式解决问题。
+        产品价值主张
+
+        一站式：上传角色 → 输入脚本 → 一键生成视频。
+        角色一致性：通过“角色 Embedding”机制保证角色长相、服饰、风格稳定。
+        快速：5 分钟内生成 Demo 视频。
+        2. 产品功能
+        MVP 必须功能（第1–2周）
+        角色上传
+        用户上传 3–5 张同一角色图片。
+        系统生成角色向量（Embedding）。
+        脚本生成
+        用户输入文字（或上传文稿）。
+        系统自动生成分镜脚本（文本描述 + 镜头划分）。
+        视频生成
+        通过调用视频生成模型（Sora / Veo / Runway / Pika）。
+        保持角色一致，生成 30 秒以内视频。
+        视频下载/分享
+        用户可直接下载视频文件，或复制分享链接。
+        扩展功能（第3–6周）
+        角色库：保存多个角色，随时调用。
+        风格模板：日常 vlog、古风、科技感、卡通等。
+        多语言支持：支持中英双语脚本。
+        协作模式：团队多人共享角色库。
+        未来功能（第7–8周及之后）
+        订阅套餐（基础版/专业版/企业版）
+        云端渲染优化（更快的视频生成速度）
+        开放 API（供其他开发者调用）
+        AI 剪辑助手（自动加字幕、音乐、转场）
+        3. 用户流程图（v0.1）
+
+        [用户上传角色图片]
+                ↓[系统生成角色Embedding]
+                ↓[输入/上传脚本文本]
+                ↓[自动生成分镜脚本]
+                ↓[调用视频生成模型]
+                ↓[输出30秒视频]
+                ↓[用户下载/分享]
+        4. 技术选型
+        前端
+        框架：Next.js + React
+        托管：Vercel 免费计划
+        UI：TailwindCSS + Shadcn/UI
+        后端
+        框架：FastAPI (Python) 或 Node.js
+        数据库：Supabase（免费起步）
+        文件存储：Supabase Storage / AWS S3
+        模型调用
+        角色一致性生成：Stable Diffusion + LoRA/Embedding 技术
+        视频生成：Runway Gen-3、Veo 3、Pika Labs（API 或调用自动化）
+        脚本生成：GPT-4.1 / Claude 3.5
+        工作流自动化
+        原型阶段：Make / Zapier（无代码自动化）
+        生产阶段：自研 API Pipeline
+        5. 商业模式（初版）
+        免费试用：1 分钟视频
+        月订阅：¥99（10 分钟/月） / ¥299（50 分钟/月）
+        企业定制：¥2,999+/月（角色库 + API 接入）
+        6. 执行路线（前8周）
+        Week 1–2：实现 MVP（角色上传 → 角色一致性 → 视频输出）。
+        Week 3–4：上线测试用户（找 3–5 位创作者）。
+        Week 5–6：迭代风格模板 + 角色库功能。
+        Week 7–8：订阅系统 + Landing Page 正式发布。
+        7. AI 员工分工（示例）
+        AI 架构师：ChatGPT（写技术文档、API 设计）
+        AI 程序员：Cursor + Copilot（写代码）
+        AI 测试员：Claude（生成测试用例 + 单元测试）
+        AI 文档员：Notion AI（生成用户手册）
+        AI 市场专员：ChatGPT（写营销文案、推广计划）
+        `;
+
+        const showApp = (user) => {
+            if (!ADMIN_EMAILS.includes(user.email)) {
+                authMessage.textContent = '您的账号未获批准，请联系管理员。';
                 authModal.style.display = 'flex';
-                mainApp.classList.add('hidden');
-                userInfo.textContent = '';
-                docList.innerHTML = '';
-            };
+                return;
+            }
+            currentUser = user;
+            authModal.style.display = 'none';
+            mainApp.classList.remove('hidden');
+            userInfo.textContent = `当前用户: ${user.email}`;
+            fetchDocuments();
+        };
 
-            // Supabase Auth State Listener
-            supabase.auth.onAuthStateChanged((event, session) => {
-                if (session && session.user) {
-                    showApp(session.user);
-                } else {
-                    hideApp();
-                }
-            });
+        const hideApp = () => {
+            currentUser = null;
+            authModal.style.display = 'flex';
+            mainApp.classList.add('hidden');
+            userInfo.textContent = '';
+            docList.innerHTML = '';
+        };
 
-            // Auth event listeners
-            loginButton.addEventListener('click', async () => {
-                authMessage.textContent = '';
-                const { error } = await supabase.auth.signInWithPassword({
-                    email: emailInput.value,
-                    password: passwordInput.value
-                });
-                if (error) {
-                    authMessage.textContent = '登录失败: ' + error.message;
-                }
-            });
-
-            signupButton.addEventListener('click', async () => {
-                authMessage.textContent = '';
-                const { error } = await supabase.auth.signUp({
-                    email: emailInput.value,
-                    password: passwordInput.value
-                });
-                if (error) {
-                    authMessage.textContent = '注册失败: ' + error.message;
-                } else {
-                    alert('注册成功！请检查你的邮箱进行验证。');
-                    authMessage.textContent = '注册成功！请检查你的邮箱进行验证。';
-                }
-            });
-
-            logoutButton.addEventListener('click', async () => {
-                await supabase.auth.signOut();
-            });
-
-            // Function to fetch documents from Supabase
-            const fetchDocuments = async () => {
-                if (!currentUser) return;
-                const { data, error } = await supabase
-                    .from('documents')
-                    .select('*')
-                    .eq('user_id', currentUser.id)
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('Error fetching documents:', error);
-                    return;
-                }
-
-                docList.innerHTML = '';
-                data.forEach(doc => {
-                    const li = document.createElement('li');
-                    li.className = 'list-item cursor-pointer p-2 rounded-lg hover:bg-blue-200 transition-colors duration-200';
-                    
-                    const docTitle = document.createElement('span');
-                    docTitle.textContent = `${doc.employee}: ${doc.title}`;
-                    docTitle.onclick = () => {
-                        outputDisplay.innerHTML = `<pre class="whitespace-pre-wrap">${doc.content}</pre>`;
-                        document.querySelectorAll('#doc-list li').forEach(item => item.classList.remove('bg-blue-300'));
-                        li.classList.add('bg-blue-300');
-                    };
-                    li.appendChild(docTitle);
-
-                    const actions = document.createElement('div');
-                    actions.className = 'flex gap-2';
-                    
-                    const downloadBtn = document.createElement('button');
-                    downloadBtn.innerHTML = '&#x2193;';
-                    downloadBtn.className = 'text-blue-600 hover:text-blue-800 transition-colors duration-200';
-                    downloadBtn.title = '下载';
-                    downloadBtn.onclick = async () => {
-                        const blob = new Blob([doc.content], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${doc.title}.txt`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    };
-                    actions.appendChild(downloadBtn);
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.innerHTML = '&#x2715;';
-                    deleteBtn.className = 'text-red-600 hover:text-red-800 transition-colors duration-200';
-                    deleteBtn.title = '删除';
-                    deleteBtn.onclick = async () => {
-                        if (confirm(`确定要删除文档 "${doc.title}" 吗？`)) {
-                            const { error } = await supabase.from('documents').delete().eq('id', doc.id);
-                            if (error) {
-                                console.error('Error deleting document:', error);
-                                alert('文档删除失败！');
-                            } else {
-                                alert('文档已成功删除。');
-                                await fetchDocuments();
-                            }
-                        }
-                    };
-                    actions.appendChild(deleteBtn);
-
-                    li.appendChild(actions);
-                    docList.appendChild(li);
-                });
-            };
-
-            const saveDocument = async (employee, prompt, content) => {
-                if (!currentUser) return;
-                const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
-                const { data, error } = await supabase
-                    .from('documents')
-                    .insert([{ employee, title, content, user_id: currentUser.id }]);
-                if (error) {
-                    console.error('Error saving document:', error);
-                } else {
-                    console.log('Document saved successfully:', data);
-                }
-                await fetchDocuments();
-            };
-            
-            const uploadFile = async (file) => {
-                const fileName = `${currentUser.id}/${Date.now()}_${file.name}`;
-                const { data, error } = await supabase.storage.from('documents').upload(fileName, file);
-
-                if (error) {
-                    console.error('Error uploading file:', error);
-                    alert('文件上传失败！');
-                } else {
-                    alert('文件已成功上传！');
-                    await saveDocument('用户上传', `已上传文件: ${file.name}`, `文件已成功上传到 Supabase Storage。路径: ${data.path}`);
-                }
-            };
-
-            // Function to call the Gemini API
-            const callGeminiAPI = async (textPrompt) => {
-                try {
-                    const chatHistory = [];
-                    chatHistory.push({ role: "user", parts: [{ text: textPrompt }] });
-                    const payload = { contents: chatHistory };
-                    const apiKey = "";
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                    
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await response.json();
-                    if (result.candidates && result.candidates.length > 0) {
-                        return result.candidates[0].content.parts[0].text;
-                    } else {
-                        return "生成内容失败，请检查API响应。";
-                    }
-                } catch (e) {
-                    console.error("Error calling Gemini API:", e);
-                    return "生成内容时发生错误。请检查控制台了解详细信息。";
-                }
-            };
-            
-            // Event listeners
-            document.getElementById('file-upload').addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    outputDisplay.textContent = `文件 "${file.name}" 已选择，等待上传...`;
-                }
-            });
-
-            employeeButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    if (!currentUser) {
-                        alert('请先登录！');
-                        return;
-                    }
-                    employeeButtons.forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'transform', 'scale-105'));
-                    button.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'transform', 'scale-105');
-                    selectedEmployee = button.dataset.employee;
-                    promptLabel.textContent = `你的指令 (${selectedEmployee}):`;
-                    generateButton.disabled = false;
-                });
-            });
-            
-            generateButton.addEventListener('click', async () => {
-                if (!currentUser) {
-                    alert('请先登录！');
-                    return;
-                }
-                const prompt = promptInput.value.trim();
-                if (!prompt || !selectedEmployee) {
-                    outputDisplay.textContent = '请选择一位AI员工并输入指令。';
-                    return;
-                }
-                generateButton.disabled = true;
-                generateButton.textContent = '工作进行中...';
-                outputDisplay.innerHTML = `<div class="flex justify-center items-center h-full"><div class="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-blue-500"></div></div>`;
-                const { data: existingDocs } = await supabase.from('documents').select('*').eq('user_id', currentUser.id);
-                const context = existingDocs.map(doc => `[文档来自${doc.employee}] ${doc.title}: ${doc.content}`).join('\n\n');
-                const fullPrompt = `你是一位专业的${selectedEmployee}。请根据以下用户指令、项目文档以及其他AI员工的现有工作文档，完成任务。项目文档：\n${productDoc}\n\n其他AI员工的现有工作文档（供你参考）：\n${context || '无现有文档。'}\n\n用户指令：\n${prompt}`;
-                const result = await callGeminiAPI(fullPrompt);
-                outputDisplay.innerHTML = `<pre class="whitespace-pre-wrap">${result}</pre>`;
-                await saveDocument(selectedEmployee, prompt, result);
-                generateButton.disabled = false;
-                generateButton.textContent = '提交任务';
-            });
-
-            uploadButton.addEventListener('click', async () => {
-                if (!currentUser) {
-                    alert('请先登录！');
-                    return;
-                }
-                const file = fileUpload.files[0];
-                if (!file) {
-                    alert('请选择一个文件！');
-                    return;
-                }
-                generateButton.disabled = true;
-                generateButton.textContent = '文件上传中...';
-                outputDisplay.innerHTML = `<div class="flex justify-center items-center h-full"><div class="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-blue-500"></div></div>`;
-                await uploadFile(file);
-                generateButton.disabled = false;
-                generateButton.textContent = '提交任务';
-            });
+        // Supabase Auth State Listener
+        supabase.auth.onAuthStateChanged((event, session) => {
+            if (session && session.user) {
+                showApp(session.user);
+            } else {
+                hideApp();
+            }
         });
+
+        // Auth event listeners
+        loginButton.addEventListener('click', async () => {
+            authMessage.textContent = '';
+            const { error } = await supabase.auth.signInWithPassword({
+                email: emailInput.value,
+                password: passwordInput.value
+            });
+            if (error) {
+                authMessage.textContent = '登录失败: ' + error.message;
+            }
+        });
+
+        signupButton.addEventListener('click', async () => {
+            authMessage.textContent = '';
+            const { error } = await supabase.auth.signUp({
+                email: emailInput.value,
+                password: passwordInput.value
+            });
+            if (error) {
+                authMessage.textContent = '注册失败: ' + error.message;
+            } else {
+                alert('注册成功！请检查你的邮箱进行验证。');
+                authMessage.textContent = '注册成功！请检查你的邮箱进行验证。';
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+        });
+
+        // Function to fetch documents from Supabase
+        const fetchDocuments = async () => {
+          if (!currentUser) return;
+          const { data, error } = await supabase
+            .from('documents')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.error('Error fetching documents:', error);
+            return;
+          }
+
+          docList.innerHTML = '';
+          data.forEach(doc => {
+            const li = document.createElement('li');
+            li.className = 'list-item cursor-pointer p-2 rounded-lg hover:bg-blue-200 transition-colors duration-200';
+            
+            const docTitle = document.createElement('span');
+            docTitle.textContent = `${doc.employee}: ${doc.title}`;
+            docTitle.onclick = () => {
+              outputDisplay.innerHTML = `<pre class="whitespace-pre-wrap">${doc.content}</pre>`;
+              document.querySelectorAll('#doc-list li').forEach(item => item.classList.remove('bg-blue-300'));
+              li.classList.add('bg-blue-300');
+            };
+            li.appendChild(docTitle);
+
+            const actions = document.createElement('div');
+            actions.className = 'flex gap-2';
+            
+            // Download Button
+            const downloadBtn = document.createElement('button');
+            downloadBtn.innerHTML = '&#x2193;';
+            downloadBtn.className = 'text-blue-600 hover:text-blue-800 transition-colors duration-200';
+            downloadBtn.title = '下载';
+            downloadBtn.onclick = async () => {
+                const blob = new Blob([doc.content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${doc.title}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+            actions.appendChild(downloadBtn);
+
+            // Delete Button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '&#x2715;';
+            deleteBtn.className = 'text-red-600 hover:text-red-800 transition-colors duration-200';
+            deleteBtn.title = '删除';
+            deleteBtn.onclick = async () => {
+                if (confirm(`确定要删除文档 "${doc.title}" 吗？`)) {
+                    const { error } = await supabase.from('documents').delete().eq('id', doc.id);
+                    if (error) {
+                        console.error('Error deleting document:', error);
+                        alert('文档删除失败！');
+                    } else {
+                        alert('文档已成功删除。');
+                        await fetchDocuments();
+                    }
+                }
+            };
+            actions.appendChild(deleteBtn);
+
+            li.appendChild(actions);
+            docList.appendChild(li);
+          });
+        };
+
+        const saveDocument = async (employee, prompt, content) => {
+          if (!currentUser) return;
+          const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
+          const { data, error } = await supabase
+            .from('documents')
+            .insert([{ employee, title, content, user_id: currentUser.id }]);
+          if (error) {
+            console.error('Error saving document:', error);
+          } else {
+            console.log('Document saved successfully:', data);
+          }
+          await fetchDocuments();
+        };
+        
+        uploadButton.addEventListener('click', async () => {
+            if (!currentUser) {
+                alert('请先登录！');
+                return;
+            }
+            const file = fileUpload.files[0];
+            if (!file) {
+                alert('请选择一个文件！');
+                return;
+            }
+
+            const fileName = `${currentUser.id}/${Date.now()}_${file.name}`;
+            const { data, error } = await supabase.storage.from('documents').upload(fileName, file);
+
+            if (error) {
+                console.error('Error uploading file:', error);
+                alert('文件上传失败！');
+            } else {
+                alert('文件已成功上传！');
+                await saveDocument('用户上传', `已上传文件: ${file.name}`, `文件已成功上传到 Supabase Storage。路径: ${data.path}`);
+            }
+        });
+
+        // Function to call the Gemini API
+        const callGeminiAPI = async (textPrompt) => {
+          try {
+            const chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: textPrompt }] });
+            const payload = {
+                contents: chatHistory
+            };
+            
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            const maxRetries = 5;
+            let attempt = 0;
+            let response;
+            while (attempt < maxRetries) {
+              try {
+                response = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                if (response.status !== 429) {
+                  break;
+                }
+                attempt++;
+                const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                await new Promise(res => setTimeout(res, delay));
+              } catch (error) {
+                attempt++;
+                const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                await new Promise(res => setTimeout(res, delay));
+              }
+            }
+
+            if (!response || !response.ok) {
+              throw new Error(`API call failed with status: ${response ? response.status : 'No response'}`);
+            }
+
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 &&
+              result.candidates[0].content && result.candidates[0].content.parts &&
+              result.candidates[0].content.parts.length > 0) {
+              return result.candidates[0].content.parts[0].text;
+            } else {
+              throw new Error("Invalid response structure from API.");
+            }
+          } catch (e) {
+            console.error("Error calling Gemini API:", e);
+            return "生成内容时发生错误。请检查控制台了解详细信息。";
+          }
+        };
+
+        // Event listeners
+        employeeButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            if (!currentUser) {
+                alert('请先登录！');
+                return;
+            }
+            employeeButtons.forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md', 'transform', 'scale-105'));
+            button.classList.add('bg-blue-600', 'text-white', 'shadow-md', 'transform', 'scale-105');
+            selectedEmployee = button.dataset.employee;
+            promptLabel.textContent = `你的指令 (${selectedEmployee}):`;
+            generateButton.disabled = false;
+          });
+        });
+
+        generateButton.addEventListener('click', async () => {
+          if (!currentUser) {
+              alert('请先登录！');
+              return;
+          }
+          const prompt = promptInput.value.trim();
+          if (!prompt || !selectedEmployee) {
+            outputDisplay.textContent = '请选择一位AI员工并输入指令。';
+            return;
+          }
+
+          generateButton.disabled = true;
+          generateButton.textContent = '工作进行中...';
+          outputDisplay.innerHTML = `
+            <div class="flex justify-center items-center h-full">\
+              <div class="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-blue-500"></div>\
+            </div>\
+          `;
+
+          const { data: existingDocs } = await supabase.from('documents').select('*').eq('user_id', currentUser.id);
+          const context = existingDocs.map(doc => `[文档来自${doc.employee}] ${doc.title}: ${doc.content}`).join('\n\n');
+
+          const fullPrompt = `你是一位专业的${selectedEmployee}。请根据以下用户指令、项目文档以及其他AI员工的现有工作文档，完成任务。
+          
+项目文档：
+${productDoc}
+
+其他AI员工的现有工作文档（供你参考）：
+${context || '无现有文档。'}
+
+用户指令：
+${prompt}`;
+
+          const result = await callGeminiAPI(fullPrompt);
+          outputDisplay.innerHTML = `<pre class="whitespace-pre-wrap">${result}</pre>`;
+          await saveDocument(selectedEmployee, prompt, result);
+
+          generateButton.disabled = false;
+          generateButton.textContent = '提交任务';
+        });
+      });
     </script>
 </body>
 </html>
